@@ -141,6 +141,13 @@ def compute_kpis(force_raw, fs=1000.0, cutoff=15.0, order=2):
         rfdmax = np.nan
         qc.append("RFDmax window too short")
 
+    # avgRFD: average RFD (N/s) from onset up to RFDmax (inclusive)
+    if idx_rfdmax is not None and idx_rfdmax >= onset:
+        # ensure a non-empty slice
+        avgRFD = float(np.mean(rfd[onset: idx_rfdmax + 1])) if (idx_rfdmax + 1) > onset else float(rfd[idx_rfdmax])
+    else:
+        avgRFD = np.nan
+
     # Plateau detection using rolling RMS of RFD
     win_rms = int(0.025 * fs)  # 25 ms
     rfd_rms = rolling_rms(rfd, win_rms)
@@ -242,6 +249,7 @@ def compute_kpis(force_raw, fs=1000.0, cutoff=15.0, order=2):
         t_endRise_s=t_endRise,
         RFDmax_Nps=rfdmax,
         t_RFDmax_s=t_rfdmax,
+        avgRFD_Nps=avgRFD,
         J_to_RFDmax_Ns=J_to_RFDmax,
         J_to_endRise_Ns=J_to_endRise,
         PlateauDur_s=plateau_dur,
@@ -258,7 +266,8 @@ def compute_kpis(force_raw, fs=1000.0, cutoff=15.0, order=2):
 
 def process_folder(folder: str, fs=1000.0, cutoff=15.0, order=2, uni_ratio=1.3):
     rows = []
-    for path in sorted(Path(folder).glob("*.tsv")):
+    # rglob finds *.tsv in folder and all subfolders (e.g. Data/Data_Bilateral, Data/Data_Unilateral)
+    for path in sorted(Path(folder).rglob("*.tsv")):
         meta = parse_filename(path.name)
 
         data = pd.read_csv(path, sep="\t", header=None, dtype=float).values
@@ -373,7 +382,7 @@ def write_excel(all_df: pd.DataFrame, out_path: str):
     meta_cols = ["FileName","ID","Pol","StranaCode","Polozaj","Ugao","Pokusaj","Case","ChannelLabel","ChannelCol",
                  "fs_Hz","LPF_Hz","LPF_order","QC_flag","QC_note"]
     preferred_kpis = [
-        "PeakF_N","t_PeakF_s","F_endRise_N","t_endRise_s","RFDmax_Nps","t_RFDmax_s",
+        "PeakF_N","t_PeakF_s","F_endRise_N","t_endRise_s","RFDmax_Nps","t_RFDmax_s","avgRFD_Nps",
         "RFD_50ms_Nps","RFD_100ms_Nps","RFD_150ms_Nps","RFD_200ms_Nps","RFD_250ms_Nps",
         "J_to_RFDmax_Ns","J_to_endRise_Ns","PlateauDur_s","F_plateau_mean_N","rmse_F_N","rmse_RFD_Nps",
         "Score_geom","Score_bi_combined"

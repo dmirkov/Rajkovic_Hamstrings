@@ -1,1 +1,4 @@
+# Data folders — keep locally, do not commit to repository
 Data/
+Data_Bilateral/
+Data_Unilateral/
